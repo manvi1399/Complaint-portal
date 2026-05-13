@@ -884,6 +884,9 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
       host: SMTP_HOST,
       port: SMTP_PORT,
       secure: SMTP_SECURE,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
