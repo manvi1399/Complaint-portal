@@ -1,0 +1,18 @@
+[
+  {
+    "id": "CIT-1001",
+    "name": "Aman Sharma",
+    "phone": "9876543210",
+    "email": "aman.sharma@gmail.com",
+    "passwordHash": "2de7e52a7a2095efc4f44de114542e045912e3711d286ee64943c95afeae82ab",
+    "registeredAt": "2026-04-01T10:00:00.000Z"
+  },
+  {
+    "id": "CIT-1002",
+    "name": "Neha Verma",
+    "phone": "9123456789",
+    "email": "neha.verma@gmail.com",
+    "passwordHash": "d11a368c1fc86da95741ebaad78db611256e7a9091830d8143249fe7fad0a90b",
+    "registeredAt": "2026-04-02T11:30:00.000Z"
+  }
+]

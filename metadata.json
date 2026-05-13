@@ -1,0 +1,5 @@
+{
+  "name": "Complaint Portal",
+  "description": "A system that classifies municipal complaints and assigns severity levels for administrative review.",
+  "requestFramePermissions": []
+}

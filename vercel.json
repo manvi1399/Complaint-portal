@@ -1,0 +1,34 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "functions": {
+    "server.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 60
+    }
+  },
+  "env": [
+    {
+      "key": "RESEND_API_KEY",
+      "description": "API key for Resend email service"
+    },
+    {
+      "key": "OTP_FROM_EMAIL",
+      "description": "Email address to send OTPs from"
+    },
+    {
+      "key": "MONGODB_URI",
+      "description": "MongoDB connection string (optional)"
+    },
+    {
+      "key": "MONGODB_DB_NAME",
+      "description": "MongoDB database name"
+    },
+    {
+      "key": "GEMINI_API_KEY",
+      "description": "Google Gemini API key"
+    }
+  ]
+}

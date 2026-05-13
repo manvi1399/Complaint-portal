@@ -1,0 +1,146 @@
+[
+  {
+    "language": "English",
+    "sector": 5,
+    "complaint": "Routine sewage drain cleaning needed near Sector 5 market; residents say smell has reduced.",
+    "expectedCategory": "Sewage",
+    "expectedSeverity": "Low"
+  },
+  {
+    "language": "Hindi",
+    "sector": 12,
+    "complaint": "Sector 12 वाली नाली me safai nahi hui, कई दिनों से problem chal rahi hai.",
+    "expectedCategory": "Sewage",
+    "expectedSeverity": "Medium"
+  },
+  {
+    "language": "Hinglish",
+    "sector": 22,
+    "complaint": "Sector 22 me nali jam hai, ganda paani road par aa raha hai aur badbu bahut hai; urgent clearing chahiye.",
+    "expectedCategory": "Sewage",
+    "expectedSeverity": "High"
+  },
+  {
+    "language": "English",
+    "sector": 41,
+    "complaint": "Open manhole near Sector 41 lane; jaan ka khatra hai—sewage overflow spreading.",
+    "expectedCategory": "Sewage",
+    "expectedSeverity": "Critical"
+  },
+
+  {
+    "language": "English",
+    "sector": 51,
+    "complaint": "Water pipeline maintenance needed in Sector 51; small leak observed.",
+    "expectedCategory": "Water Supply",
+    "expectedSeverity": "Low"
+  },
+  {
+    "language": "Hindi",
+    "sector": 30,
+    "complaint": "Sector 30 में पानी नहीं आ रहा है पिछले कई दिनों से; residents को बहुत दिक्कत हो रही है।",
+    "expectedCategory": "Water Supply",
+    "expectedSeverity": "Medium"
+  },
+  {
+    "language": "English",
+    "sector": 12,
+    "complaint": "Sector 12 major leak from water pipeline; overflow on the road and urgent repair needed.",
+    "expectedCategory": "Water Supply",
+    "expectedSeverity": "High"
+  },
+  {
+    "language": "English",
+    "sector": 45,
+    "complaint": "Sector 45 water pipeline leak causing flooding; people nearby at risk and need immediate action.",
+    "expectedCategory": "Water Supply",
+    "expectedSeverity": "Critical"
+  },
+
+  {
+    "language": "English",
+    "sector": 7,
+    "complaint": "Sector 7 road has a pothole that needs inspection.",
+    "expectedCategory": "Road Issues",
+    "expectedSeverity": "Low"
+  },
+  {
+    "language": "Hinglish",
+    "sector": 16,
+    "complaint": "Sector 16 sadak par khadda hai, कई दिनों से it is causing problem for commuters.",
+    "expectedCategory": "Road Issues",
+    "expectedSeverity": "Medium"
+  },
+  {
+    "language": "English",
+    "sector": 27,
+    "complaint": "On the footpath, accident risk is very dangerous; pedestrians are at risk during heavy traffic.",
+    "expectedCategory": "Road Issues",
+    "expectedSeverity": "High"
+  },
+  {
+    "language": "Hinglish",
+    "sector": 53,
+    "complaint": "Sector 53 near park: deep pothole on rasta, accident ka risk aur dangerous situation hai; jaan ka khatra.",
+    "expectedCategory": "Road Issues",
+    "expectedSeverity": "Critical"
+  },
+
+  {
+    "language": "English",
+    "sector": 33,
+    "complaint": "Sector 33 street light is slightly dim; lamps are present and working.",
+    "expectedCategory": "Street Light",
+    "expectedSeverity": "Low"
+  },
+  {
+    "language": "English",
+    "sector": 8,
+    "complaint": "Street light band hai; it has not been working for a few nights and the lane is completely dark.",
+    "expectedCategory": "Street Light",
+    "expectedSeverity": "Medium"
+  },
+  {
+    "language": "English",
+    "sector": 45,
+    "complaint": "Electric pole has hazard and residents feel risk while passing at night in Sector 45.",
+    "expectedCategory": "Street Light",
+    "expectedSeverity": "High"
+  },
+  {
+    "language": "Hindi",
+    "sector": 30,
+    "complaint": "Sector 30 में bijli ki taar mein aag aur wire fire हो रहा है, jaan ka khatra है।",
+    "expectedCategory": "Street Light",
+    "expectedSeverity": "Critical"
+  },
+
+  {
+    "language": "English",
+    "sector": 56,
+    "complaint": "Small amount of waste near dustbin in Sector 56 needs routine cleaning.",
+    "expectedCategory": "Garbage",
+    "expectedSeverity": "Low"
+  },
+  {
+    "language": "Hindi",
+    "sector": 25,
+    "complaint": "Sector 25 ka kachra wahin pada hai, कई दिनों से सफाई नहीं हुई है।",
+    "expectedCategory": "Garbage",
+    "expectedSeverity": "Medium"
+  },
+  {
+    "language": "Hinglish",
+    "sector": 19,
+    "complaint": "Sector 19 garbage dump se badbu aur risk ho raha hai; urgent clearing chahiye।",
+    "expectedCategory": "Garbage",
+    "expectedSeverity": "High"
+  },
+  {
+    "language": "English",
+    "sector": 9,
+    "complaint": "Sector 9 garbage aag (garbage fire) is spreading and smoke is filling the lane.",
+    "expectedCategory": "Garbage",
+    "expectedSeverity": "Critical"
+  }
+]

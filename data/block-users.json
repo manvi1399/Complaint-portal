@@ -1,0 +1,24 @@
+[
+  {
+    "id": "BLK-NB-001",
+    "name": "North Block B Field Desk",
+    "username": "north.blockb",
+    "passwordHash": "49e1fcb09ac72c5d1a68ef74b1ff75d3834d24da4e751b8899831e63d0b2c7b6",
+    "municipalityId": "north-chandigarh",
+    "municipalityName": "North Chandigarh Municipality",
+    "blockId": "north-block-b",
+    "blockName": "Block B",
+    "portalId": "north-block-b"
+  },
+  {
+    "id": "BLK-CB-001",
+    "name": "Central Block B Field Desk",
+    "username": "central.blockb",
+    "passwordHash": "49e1fcb09ac72c5d1a68ef74b1ff75d3834d24da4e751b8899831e63d0b2c7b6",
+    "municipalityId": "central-chandigarh",
+    "municipalityName": "Central Chandigarh Municipality",
+    "blockId": "central-block-b",
+    "blockName": "Block B",
+    "portalId": "central-block-b"
+  }
+]
