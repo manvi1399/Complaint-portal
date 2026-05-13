@@ -9,26 +9,21 @@
       "maxDuration": 60
     }
   },
-  "env": [
-    {
-      "key": "RESEND_API_KEY",
+  "env": {
+    "RESEND_API_KEY": {
       "description": "API key for Resend email service"
     },
-    {
-      "key": "OTP_FROM_EMAIL",
+    "OTP_FROM_EMAIL": {
       "description": "Email address to send OTPs from"
     },
-    {
-      "key": "MONGODB_URI",
+    "MONGODB_URI": {
       "description": "MongoDB connection string (optional)"
     },
-    {
-      "key": "MONGODB_DB_NAME",
+    "MONGODB_DB_NAME": {
       "description": "MongoDB database name"
     },
-    {
-      "key": "GEMINI_API_KEY",
+    "GEMINI_API_KEY": {
       "description": "Google Gemini API key"
     }
-  ]
+  }
 }
