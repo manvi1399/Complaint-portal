@@ -3,12 +3,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "server.ts": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 60
-    }
-  },
   "env": {
     "RESEND_API_KEY": "API key for Resend email service",
     "OTP_FROM_EMAIL": "Email address to send OTPs from",
