@@ -69,6 +69,8 @@ function configuredEnvValue(value: string | undefined) {
 
 const RESEND_API_KEY = configuredEnvValue(process.env.RESEND_API_KEY);
 const OTP_FROM_EMAIL = process.env.OTP_FROM_EMAIL ?? "Complaint Portal <onboarding@resend.dev>";
+const BREVO_API_KEY = configuredEnvValue(process.env.BREVO_API_KEY);
+const BREVO_FROM_EMAIL = configuredEnvValue(process.env.BREVO_FROM_EMAIL);
 const SMTP_HOST = configuredEnvValue(process.env.SMTP_HOST);
 const SMTP_PORT = Number.parseInt(process.env.SMTP_PORT ?? "587", 10);
 const SMTP_SECURE = process.env.SMTP_SECURE === "true";
@@ -80,6 +82,9 @@ const OTP_DEMO_PREVIEW =
   (!HAS_SMTP_CONFIG && !RESEND_API_KEY && process.env.NODE_ENV !== "production");
 
 function otpDeliverySummary(): string {
+  if (BREVO_API_KEY) {
+    return "email via Brevo API";
+  }
   if (HAS_SMTP_CONFIG) {
     return `email via SMTP (${SMTP_HOST}:${SMTP_PORT})`;
   }
@@ -93,7 +98,7 @@ function otpDeliverySummary(): string {
 }
 
 function hasEmailOtpDelivery() {
-  return HAS_SMTP_CONFIG || Boolean(RESEND_API_KEY);
+  return Boolean(BREVO_API_KEY) || HAS_SMTP_CONFIG || Boolean(RESEND_API_KEY);
 }
 
 const MONGODB_URI = process.env.MONGODB_URI ?? "";
@@ -863,12 +868,66 @@ function createOtpResponse(challenge: OtpChallenge, message: string) {
   };
 }
 
-async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
-  if (challenge.channel !== "email") {
-    if (OTP_DEMO_PREVIEW) {
-      return;
-    }
+function parseEmailSender(value: string) {
+  const match = value.match(/^\s*(.*?)\s*<([^<>@\s]+@[^<>@\s]+)>\s*$/);
+  if (match) {
+    return {
+      name: match[1]?.trim().replace(/^"|"$/g, "") || "Complaint Portal",
+      email: match[2]!,
+    };
+  }
 
+  return {
+    name: "Complaint Portal",
+    email: value.trim(),
+  };
+}
+
+async function sendBrevoEmailOtp(challenge: OtpChallenge, subject: string, text: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  const sender = parseEmailSender(BREVO_FROM_EMAIL || OTP_FROM_EMAIL);
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: challenge.destination }],
+        subject,
+        textContent: text,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`Brevo API returned ${response.status}. ${detail}`.trim());
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown Brevo error";
+    console.error("Email OTP delivery failed via Brevo.", {
+      from: sender.email,
+      to: challenge.destination,
+      error: errorMessage,
+    });
+    throw new Error(`Email OTP delivery failed via Brevo. ${errorMessage}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
+  if (OTP_DEMO_PREVIEW) {
+    return;
+  }
+
+  if (challenge.channel !== "email") {
     throw new Error("Real phone OTP delivery is not configured. Use an email login or configure an SMS provider.");
   }
 
@@ -878,6 +937,11 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
     "This code expires in 5 minutes.",
     "If you did not request this code, you can ignore this email.",
   ].join("\n");
+
+  if (BREVO_API_KEY) {
+    await sendBrevoEmailOtp(challenge, subject, text);
+    return;
+  }
 
   if (HAS_SMTP_CONFIG) {
     const transporter = nodemailer.createTransport({
@@ -918,10 +982,6 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
   }
 
   if (!RESEND_API_KEY) {
-    if (OTP_DEMO_PREVIEW) {
-      return;
-    }
-
     throw new Error("Email OTP delivery is not configured. Set SMTP credentials or RESEND_API_KEY.");
   }
 
@@ -1541,6 +1601,7 @@ function createHealthPayload(complaints: ComplaintRecord[], ai: GoogleGenAI | nu
     persistence: mongoStore ? "mongodb" : "file",
     otpDelivery: otpDeliverySummary(),
     emailOtpConfigured: hasEmailOtpDelivery(),
+    brevoConfigured: Boolean(BREVO_API_KEY),
     smtpConfigured: HAS_SMTP_CONFIG,
     resendConfigured: Boolean(RESEND_API_KEY),
     uptimeSeconds: Math.floor((Date.now() - SERVER_STARTED_AT) / 1000),

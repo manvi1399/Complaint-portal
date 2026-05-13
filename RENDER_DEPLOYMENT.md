@@ -6,7 +6,7 @@ Deploy the Complaint Portal to Render in 5 minutes.
 - GitHub account with this repo pushed
 - Render account (sign up at https://render.com)
 - API keys ready: `GEMINI_API_KEY`
-- For OTP email: Gmail App Password for SMTP, or a verified Resend domain
+- For OTP email: Brevo API key and verified Brevo sender
 
 ## Steps
 
@@ -41,11 +41,13 @@ SMTP_SECURE=false
 SMTP_USER=yourgmail@gmail.com
 SMTP_PASS=your_16_character_google_app_password
 OTP_FROM_EMAIL=Complaint Portal <yourgmail@gmail.com>
+BREVO_API_KEY=xkeysib-your-brevo-api-key
+BREVO_FROM_EMAIL=Complaint Portal <your-verified-brevo-sender@example.com>
 OTP_DEMO_PREVIEW=false
 ADMIN_SEED_PASSWORD=Admin@123
 ```
 
-SMTP is used before Resend. If you later switch to Resend, set `RESEND_API_KEY` and use an `OTP_FROM_EMAIL` address on a verified Resend domain.
+For real email on Render Free, use Brevo. The app sends through Brevo's HTTPS API before trying SMTP or Resend, so it avoids Render's SMTP port restrictions.
 
 ### 4. Deploy
 Click **"Create Web Service"** and watch the logs. Takes 2-3 minutes.
@@ -84,10 +86,10 @@ Health:         https://your-service.onrender.com/api/health
 - Check `npm run dev` works locally
 
 **OTP not sending:**
-- Confirm Render logs show `OTP delivery: email via SMTP (smtp.gmail.com:587)`
+- Confirm Render logs show `OTP delivery: email via Brevo API`
 - Visit `https://your-service.onrender.com/api/health` and check `otpDelivery`
-- Confirm `smtpConfigured` is `true`
-- Use a Google App Password for `SMTP_PASS`, not your normal Gmail password
+- Confirm `brevoConfigured` is `true`
+- Confirm `BREVO_FROM_EMAIL` is a verified sender in Brevo
 - Make sure the citizen account has an email address; phone/SMS OTP is not implemented
 - If Resend returns a 403 for `onboarding@resend.dev`, verify a domain and update `OTP_FROM_EMAIL`
 
@@ -97,5 +99,5 @@ Health:         https://your-service.onrender.com/api/health
 
 ## Next Steps
 - Add MongoDB Atlas URI for persistence (optional)
-- Configure Gmail SMTP or Resend for real emails
+- Configure Brevo API or Resend for real emails
 - Set up domain custom domain (paid tier only)

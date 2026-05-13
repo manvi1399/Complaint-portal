@@ -150,6 +150,7 @@ export interface ComplaintHealth {
   persistence: "file" | "mongodb";
   otpDelivery: string;
   emailOtpConfigured: boolean;
+  brevoConfigured: boolean;
   smtpConfigured: boolean;
   resendConfigured: boolean;
   uptimeSeconds: number;

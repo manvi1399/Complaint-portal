@@ -22,19 +22,19 @@ PORT=3001
 **Symptoms**: OTP not received, email verification fails
 
 **Check**:
-1. Verify `RESEND_API_KEY` in `.env`:
+1. Verify email provider variables in `.env` or Render:
    ```
-   RESEND_API_KEY=re_4b1rqo38_3f5joBSA5bgtjujUrdyHfpTz
+   BREVO_API_KEY=xkeysib-your-api-key
+   BREVO_FROM_EMAIL=Complaint Portal <your-verified-sender@example.com>
+   OTP_DEMO_PREVIEW=false
    ```
 
-2. Check server logs show: `OTP delivery: email via Resend API`
+2. Check server logs show: `OTP delivery: email via Brevo API`
 
 3. If showing `demo — OTP shown in UI`: 
    - Set `OTP_DEMO_PREVIEW=false` in `.env`
 
-4. Verify sender domain in Resend dashboard:
-   - https://resend.com/emails
-   - Add verified domain if using custom email
+4. Verify your sender in Brevo before using it for OTP email.
 
 **Fix**:
 ```bash

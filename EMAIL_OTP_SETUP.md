@@ -2,11 +2,21 @@
 
 ## ✅ Configuration Complete
 
-Your Complaint Portal can send email OTPs using **Gmail SMTP** or **Resend API**. SMTP is tried first, so Gmail works while your Resend domain is still unverified.
+Your Complaint Portal sends real email OTPs using **Brevo API**, **Gmail SMTP**, or **Resend API**. On Render Free, use Brevo API because Gmail SMTP ports are blocked.
 
 ### Environment Variables Configured
 
-Free Gmail SMTP option for Render:
+Recommended real email option on Render:
+
+```env
+BREVO_API_KEY="xkeysib-your-api-key"
+BREVO_FROM_EMAIL="Complaint Portal <your-verified-brevo-sender@example.com>"
+OTP_DEMO_PREVIEW="false"
+```
+
+Brevo uses HTTPS, so it works on Render Free without SMTP ports. The sender email must be added and verified in Brevo.
+
+Free Gmail SMTP option outside Render Free:
 
 ```env
 SMTP_HOST="smtp.gmail.com"
@@ -26,7 +36,7 @@ OTP_FROM_EMAIL="Complaint Portal <noreply@your-verified-domain.com>"
 OTP_DEMO_PREVIEW="false"
 ```
 
-> **Important for Render:** values in your local `.env` file are not deployed automatically. Add the Gmail SMTP variables above in the Render service Environment tab, then redeploy.
+> **Important for Render:** values in your local `.env` file are not deployed automatically. Set `BREVO_API_KEY`, `BREVO_FROM_EMAIL`, and `OTP_DEMO_PREVIEW=false` in the Render service Environment tab, then redeploy.
 >
 > Resend's default `onboarding@resend.dev` sender is only for testing and can only send to the email address on your Resend account. For real users, verify a custom domain and use an address on that domain.
 
@@ -34,16 +44,16 @@ OTP_DEMO_PREVIEW="false"
 
 1. **Installation**
    - Added `resend` npm package for official SDK support
+   - Added Brevo API support for Render Free
    - Added `nodemailer` SMTP support for Gmail or other SMTP providers
 
 2. **Server Configuration** (`server.ts`)
-   - Imported Resend SDK
-   - Updated `sendEmailOtp()` function to use the official Resend client
-   - Improved error handling with typed Resend responses
+   - Updated `sendEmailOtp()` to try Brevo API before SMTP or Resend
+   - Improved provider-specific error logging
 
 3. **Environment Variables** (`.env`)
-   - Configured SMTP or `RESEND_API_KEY` with your email credentials
-   - Set `OTP_FROM_EMAIL` to your Gmail address or verified sending domain
+   - Configured `BREVO_API_KEY`, SMTP, or `RESEND_API_KEY` with your email credentials
+   - Set `BREVO_FROM_EMAIL` or `OTP_FROM_EMAIL` to your verified sender
    - Disabled `OTP_DEMO_PREVIEW` to enable real email delivery
 
 ### How OTP Delivery Works
@@ -54,7 +64,7 @@ OTP_DEMO_PREVIEW="false"
 
 2. **OTP Generated & Sent**
    - 6-digit code generated
-   - Sent via Gmail SMTP or Resend API to user's email
+   - Sent via Brevo API, Gmail SMTP, or Resend API to user's email
    - Code expires in 5 minutes
 
 3. **User Verifies OTP**
@@ -79,11 +89,12 @@ OTP_DEMO_PREVIEW="false"
 ### Troubleshooting
 
 **Emails Not Sending on Render?**
-- Verify `SMTP_USER`, `SMTP_PASS`, and `OTP_FROM_EMAIL` are set in Render's Environment tab, not only in local `.env`
-- For Gmail, `SMTP_PASS` must be a Google App Password, not your normal Gmail password
+- Verify `BREVO_API_KEY`, `BREVO_FROM_EMAIL`, and `OTP_DEMO_PREVIEW=false` are set in Render's Environment tab, not only in local `.env`
+- Confirm `BREVO_FROM_EMAIL` is a verified Brevo sender
+- If using Gmail SMTP, remember Render Free blocks SMTP ports; use Brevo API instead
 - If using Resend, verify `RESEND_API_KEY` is set and `OTP_FROM_EMAIL` uses a verified Resend domain for real recipients
 - Open `/api/health` on your Render URL and check `otpDelivery`
-- Check Render logs for startup line: `OTP delivery: email via SMTP (smtp.gmail.com:587)` or `OTP delivery: email via Resend API`
+- Check Render logs for startup line: `OTP delivery: email via Brevo API`
 - Check Resend console for delivery errors: https://resend.com/emails
 
 **Emails Not Sending Locally?**
@@ -91,7 +102,21 @@ OTP_DEMO_PREVIEW="false"
 - Confirm `OTP_FROM_EMAIL` matches your Gmail account or verified Resend domain
 - Check Resend console for delivery errors: https://resend.com/emails
 
-### Gmail SMTP Setup (Free)
+### Brevo API Setup (Works on Render Free)
+
+1. Create a free Brevo account.
+2. Go to SMTP & API > API Keys and create an API key.
+3. Go to Senders & IP and add/verify your sender email.
+4. Add these variables in Render:
+   ```env
+   BREVO_API_KEY=xkeysib-your-api-key
+   BREVO_FROM_EMAIL=Complaint Portal <your-verified-sender@example.com>
+   OTP_DEMO_PREVIEW=false
+   ```
+5. Redeploy the Render service.
+6. Check `/api/health`; `otpDelivery` should say `email via Brevo API`.
+
+### Gmail SMTP Setup (Not for Render Free)
 
 1. Enable 2-Step Verification on the Gmail account you want to send from.
 2. Open Google Account > Security > App passwords.
