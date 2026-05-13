@@ -103,11 +103,11 @@ To reset:
 
 ---
 
-### 🚀 Deployment Fails on Vercel
+### 🚀 Deployment Fails on Render
 
 **Check Build Logs**:
-1. Go to Vercel dashboard → Deployments → Failed deploy
-2. Click "View Function Logs"
+1. Go to Render dashboard → Services → complaint-portal
+2. Click "Logs" tab
 3. Look for errors
 
 **Common Issues**:
@@ -117,12 +117,17 @@ To reset:
 - Run `npm install resend` locally and push
 
 **"RESEND_API_KEY is not defined"**
-- Add environment variable in Vercel Settings
+- Add environment variable in Render dashboard
 - Redeploy after adding
 
 **"Build failed: npm run build"**
 - Run `npm run build` locally to test
 - Check TypeScript errors: `npm run lint`
+
+**App keeps restarting (crashes)**
+- Check logs for errors
+- Verify all required env variables are set
+- Test with `npm run dev` locally
 
 ---
 

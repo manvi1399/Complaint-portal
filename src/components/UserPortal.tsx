@@ -175,7 +175,7 @@ export function UserPortal() {
       setPendingChallenge(payload);
       setChallengeType(type);
       setAuthView(type === "register" ? "register" : "login");
-      setSuccess(`${payload.message} Use the code shown below.`);
+      setSuccess(payload.otpPreview ? `${payload.message} Use the code shown below.` : payload.message);
     } catch (otpError) {
       setError(otpError instanceof Error ? otpError.message : "Unable to generate OTP.");
     } finally {
@@ -255,7 +255,7 @@ export function UserPortal() {
                 <button className={loginMode === "password" ? "active" : ""} type="button" onClick={() => setLoginMode("password")}>Password</button>
               </div>
               <form className="form-stack" onSubmit={loginMode === "password" ? handlePasswordLogin : (event) => void requestOtp(event, "login")}>
-                <input value={loginIdentifier} onChange={(event) => setLoginIdentifier(event.target.value)} placeholder="Citizen ID, phone, or Gmail" />
+                <input value={loginIdentifier} onChange={(event) => setLoginIdentifier(event.target.value)} placeholder="Citizen ID, phone, or email" />
                 {loginMode === "password" ? <input type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} placeholder="Password" /> : null}
                 <button disabled={loadingAuth}>{loginMode === "password" ? "Login" : "Send OTP"}</button>
               </form>
@@ -268,7 +268,7 @@ export function UserPortal() {
               <form className="form-stack" onSubmit={(event) => void requestOtp(event, "register")}>
                 <input value={registerForm.name} onChange={(event) => setRegisterForm((current) => ({ ...current, name: event.target.value }))} placeholder="Full name" />
                 <input value={registerForm.phone} onChange={(event) => setRegisterForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone number" />
-                <input value={registerForm.email} onChange={(event) => setRegisterForm((current) => ({ ...current, email: event.target.value }))} placeholder="Gmail / email (optional)" />
+                <input value={registerForm.email} onChange={(event) => setRegisterForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email for OTP" />
                 <input type="password" value={registerForm.password} onChange={(event) => setRegisterForm((current) => ({ ...current, password: event.target.value }))} placeholder="Password" />
                 <button disabled={loadingAuth}>Generate OTP</button>
               </form>

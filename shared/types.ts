@@ -148,5 +148,9 @@ export interface ComplaintHealth {
   manualReviewCount: number;
   aiAvailable: boolean;
   persistence: "file" | "mongodb";
+  otpDelivery: string;
+  emailOtpConfigured: boolean;
+  smtpConfigured: boolean;
+  resendConfigured: boolean;
   uptimeSeconds: number;
 }

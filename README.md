@@ -96,29 +96,25 @@ complaint-portal/
 ├── shared/                  # Shared types & utils
 ├── data/                    # JSON file storage
 ├── .env.example             # Environment template
-├── vercel.json              # Vercel config
+├── render.yaml              # Render deployment config
 └── package.json             # Dependencies
 ```
 
 ## 🚢 Deployment
 
-### Vercel (Free)
+### Render (Free & Easiest)
 ```bash
 # 1. Push to GitHub
 git add .
-git commit -m "Initial commit"
+git commit -m "Ready for Render deployment"
 git push origin main
 
-# 2. Import on Vercel
-# https://vercel.com/new → Select your repo
-
-# 3. Add environment variables in Vercel dashboard
-# Set RESEND_API_KEY, GEMINI_API_KEY, etc.
-
+# 2. Go to render.com, connect your GitHub repo
+# 3. Add environment variables (RESEND_API_KEY, GEMINI_API_KEY)
 # 4. Deploy!
 ```
 
-See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed steps.
+See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for detailed steps.
 
 ## 🔐 Security
 
@@ -194,7 +190,7 @@ MIT License - feel free to use for educational and commercial projects.
 
 ## 🆘 Support
 
-- Check [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for deployment issues
+- Check [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for deployment issues
 - See [EMAIL_OTP_SETUP.md](./EMAIL_OTP_SETUP.md) for email problems
 - Review logs in `npm run dev` output
 

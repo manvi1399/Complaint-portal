@@ -155,10 +155,11 @@ interface ComplaintRecord {
 Single server, all portals on different ports
 ```
 
-### Vercel Production
+### Render Production
 ```
-Single deployment, ports managed by serverless
-environment variables in dashboard
+Single deployment on Node.js runtime
+Environment variables configured in Render dashboard
+Auto-deploys on git push to main
 ```
 
 ### MongoDB Setup (Production)

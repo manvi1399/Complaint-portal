@@ -92,6 +92,10 @@ function otpDeliverySummary(): string {
   return "not configured — set SMTP_* or RESEND_API_KEY for email OTP";
 }
 
+function hasEmailOtpDelivery() {
+  return HAS_SMTP_CONFIG || Boolean(RESEND_API_KEY);
+}
+
 const MONGODB_URI = process.env.MONGODB_URI ?? "";
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME ?? "complaint_portal";
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
@@ -886,12 +890,26 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
       },
     });
 
-    await transporter.sendMail({
-      from: OTP_FROM_EMAIL,
-      to: challenge.destination,
-      subject,
-      text,
-    });
+    try {
+      await transporter.sendMail({
+        from: OTP_FROM_EMAIL,
+        to: challenge.destination,
+        subject,
+        text,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown SMTP error";
+      console.error("Email OTP delivery failed via SMTP.", {
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_SECURE,
+        userConfigured: Boolean(SMTP_USER),
+        from: OTP_FROM_EMAIL,
+        to: challenge.destination,
+        error: errorMessage,
+      });
+      throw new Error(`Email OTP delivery failed via SMTP. ${errorMessage}`);
+    }
 
     return;
   }
@@ -919,6 +937,11 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Email OTP delivery failed via Resend.", {
+      from: OTP_FROM_EMAIL,
+      to: challenge.destination,
+      error: errorMessage,
+    });
     throw new Error(`Email OTP delivery failed. ${errorMessage}`);
   }
 }
@@ -1513,6 +1536,10 @@ function createHealthPayload(complaints: ComplaintRecord[], ai: GoogleGenAI | nu
     manualReviewCount: complaints.filter((item) => item.routingStatus === "Needs Manual Review").length,
     aiAvailable: Boolean(ai),
     persistence: mongoStore ? "mongodb" : "file",
+    otpDelivery: otpDeliverySummary(),
+    emailOtpConfigured: hasEmailOtpDelivery(),
+    smtpConfigured: HAS_SMTP_CONFIG,
+    resendConfigured: Boolean(RESEND_API_KEY),
     uptimeSeconds: Math.floor((Date.now() - SERVER_STARTED_AT) / 1000),
   };
 }
@@ -1653,6 +1680,12 @@ async function registerApiRoutes(
       return res.status(409).json({ error: "A citizen account already exists for this email address." });
     }
 
+    if (!normalizedEmail.value && !OTP_DEMO_PREVIEW) {
+      return res.status(400).json({
+        error: "Email address is required for OTP. SMS delivery is not configured for this deployment.",
+      });
+    }
+
     const challenge = issueOtpChallenge({
       purpose: "register",
       channel: normalizedEmail.value ? "email" : "phone",
@@ -1768,13 +1801,18 @@ async function registerApiRoutes(
       return res.status(404).json({ error: "Citizen account not found for that phone, email, or user ID." });
     }
 
-    const normalizedIdentifier = normalizeIdentifier(identifier);
-    const useEmailChannel = Boolean(citizenUser.email) && citizenUser.email?.toLowerCase() === normalizedIdentifier;
+    const useEmailChannel = Boolean(citizenUser.email);
+
+    if (!useEmailChannel && !OTP_DEMO_PREVIEW) {
+      return res.status(400).json({
+        error: "This account has no email address for OTP. Please sign in with password or register with an email address.",
+      });
+    }
 
     const challenge = issueOtpChallenge({
       purpose: "login",
       channel: useEmailChannel ? "email" : "phone",
-      destination: useEmailChannel ? citizenUser.email || citizenUser.id : citizenUser.phone,
+      destination: useEmailChannel ? citizenUser.email! : citizenUser.phone,
       payload: {
         kind: "login",
         citizenId: citizenUser.id,
@@ -2279,6 +2317,24 @@ function registerProductionFrontend(app: express.Express, htmlFile: string) {
   });
 }
 
+function registerProductionFrontends(app: express.Express) {
+  const distPath = path.join(process.cwd(), "dist");
+
+  app.use(express.static(distPath));
+  app.get(["/admin", "/admin/*"], (_req, res) => {
+    res.sendFile(path.join(distPath, "admin.html"));
+  });
+  app.get(["/block/north", "/block/north/*"], (_req, res) => {
+    res.sendFile(path.join(distPath, "block-north.html"));
+  });
+  app.get(["/block/central", "/block/central/*"], (_req, res) => {
+    res.sendFile(path.join(distPath, "block-central.html"));
+  });
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
 async function startServer() {
   const persistenceMode = await initializePersistence();
   const complaints = await loadComplaints();
@@ -2287,44 +2343,56 @@ async function startServer() {
   const blockUsers = await loadBlockUsers();
   const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 
-  const citizenApp = express();
-  const adminApp = express();
-  const northBlockApp = express();
-  const centralBlockApp = express();
+  if (process.env.NODE_ENV === "production") {
+    const app = express();
+    applySecurityHeaders(app);
+    await registerApiRoutes(app, complaints, adminUsers, citizenUsers, blockUsers, ai);
+    registerProductionFrontends(app);
 
-  const frontendServers = [
-    {
-      app: citizenApp,
-      htmlFile: "index.html",
-      port: PORT,
-      label: `Citizen portal running on http://localhost:${PORT}`,
-    },
-    {
-      app: adminApp,
-      htmlFile: "admin.html",
-      port: ADMIN_PORT,
-      label: `Admin portal running on http://localhost:${ADMIN_PORT}`,
-    },
-    {
-      app: northBlockApp,
-      htmlFile: "block-north.html",
-      port: NORTH_BLOCK_PORT,
-      label: `North Block B portal running on http://localhost:${NORTH_BLOCK_PORT}`,
-    },
-    {
-      app: centralBlockApp,
-      htmlFile: "block-central.html",
-      port: CENTRAL_BLOCK_PORT,
-      label: `Central Block B portal running on http://localhost:${CENTRAL_BLOCK_PORT}`,
-    },
-  ];
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Complaint portal running on http://localhost:${PORT}`);
+      console.log(`Admin portal available at /admin`);
+      console.log(`North Block B portal available at /block/north`);
+      console.log(`Central Block B portal available at /block/central`);
+    });
+  } else {
+    const citizenApp = express();
+    const adminApp = express();
+    const northBlockApp = express();
+    const centralBlockApp = express();
 
-  for (const server of frontendServers) {
-    applySecurityHeaders(server.app);
-    await registerApiRoutes(server.app, complaints, adminUsers, citizenUsers, blockUsers, ai);
-  }
+    const frontendServers = [
+      {
+        app: citizenApp,
+        htmlFile: "index.html",
+        port: PORT,
+        label: `Citizen portal running on http://localhost:${PORT}`,
+      },
+      {
+        app: adminApp,
+        htmlFile: "admin.html",
+        port: ADMIN_PORT,
+        label: `Admin portal running on http://localhost:${ADMIN_PORT}`,
+      },
+      {
+        app: northBlockApp,
+        htmlFile: "block-north.html",
+        port: NORTH_BLOCK_PORT,
+        label: `North Block B portal running on http://localhost:${NORTH_BLOCK_PORT}`,
+      },
+      {
+        app: centralBlockApp,
+        htmlFile: "block-central.html",
+        port: CENTRAL_BLOCK_PORT,
+        label: `Central Block B portal running on http://localhost:${CENTRAL_BLOCK_PORT}`,
+      },
+    ];
 
-  if (process.env.NODE_ENV !== "production") {
+    for (const server of frontendServers) {
+      applySecurityHeaders(server.app);
+      await registerApiRoutes(server.app, complaints, adminUsers, citizenUsers, blockUsers, ai);
+    }
+
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "custom",
@@ -2333,16 +2401,12 @@ async function startServer() {
     for (const server of frontendServers) {
       await registerDevFrontend(server.app, vite, server.htmlFile);
     }
-  } else {
-    for (const server of frontendServers) {
-      registerProductionFrontend(server.app, server.htmlFile);
-    }
-  }
 
-  for (const server of frontendServers) {
-    server.app.listen(server.port, "0.0.0.0", () => {
-      console.log(server.label);
-    });
+    for (const server of frontendServers) {
+      server.app.listen(server.port, "0.0.0.0", () => {
+        console.log(server.label);
+      });
+    }
   }
 
   console.log(`Seeded admin username: ${DEFAULT_ADMIN_USERNAME}`);

@@ -90,7 +90,7 @@ MONGODB_URI=mongodb+srv://...
 
 ---
 
-## 🚢 Deploy to Vercel
+## 🚢 Deploy to Render
 
 1. Push to GitHub:
    ```bash
@@ -101,10 +101,13 @@ MONGODB_URI=mongodb+srv://...
    git push origin main
    ```
 
-2. Go to: https://vercel.com/new
-3. Import your GitHub repo
-4. Add environment variables
-5. Deploy!
+2. Go to: https://render.com/dashboard
+3. Click "New +" → "Web Service"
+4. Select your GitHub repo
+5. Add environment variables (RESEND_API_KEY, GEMINI_API_KEY)
+6. Deploy!
+
+See [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) for full guide.
 
 ---
 
@@ -128,7 +131,7 @@ MONGODB_URI=mongodb+srv://...
 server.ts            ← Backend (Express)
 src/                 ← Frontend (React)
 data/                ← Stored complaints (JSON)
-vercel.json          ← Deployment config
+render.yaml          ← Deployment config
 ```
 
 ---
@@ -137,7 +140,7 @@ vercel.json          ← Deployment config
 
 - ✅ `.env` in `.gitignore` (not pushed to GitHub)
 - ✅ API keys only in `.env` file
-- ✅ HTTPS in production (automatic with Vercel)
+- ✅ HTTPS in production (automatic with Render)
 - ✅ Rate limiting on OTP requests
 - ✅ Password hashed with bcryptjs
 
@@ -191,7 +194,7 @@ Get-Process -Name node, tsx
 
 - [README.md](./README.md) - Overview & features
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System design
-- [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) - Deployment guide
+- [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md) - Deployment guide
 - [EMAIL_OTP_SETUP.md](./EMAIL_OTP_SETUP.md) - Email config
 - [CONTRIBUTING.md](./CONTRIBUTING.md) - How to contribute
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Problem solving
