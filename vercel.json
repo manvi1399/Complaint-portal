@@ -10,20 +10,10 @@
     }
   },
   "env": {
-    "RESEND_API_KEY": {
-      "description": "API key for Resend email service"
-    },
-    "OTP_FROM_EMAIL": {
-      "description": "Email address to send OTPs from"
-    },
-    "MONGODB_URI": {
-      "description": "MongoDB connection string (optional)"
-    },
-    "MONGODB_DB_NAME": {
-      "description": "MongoDB database name"
-    },
-    "GEMINI_API_KEY": {
-      "description": "Google Gemini API key"
-    }
+    "RESEND_API_KEY": "API key for Resend email service",
+    "OTP_FROM_EMAIL": "Email address to send OTPs from",
+    "MONGODB_URI": "MongoDB connection string (optional)",
+    "MONGODB_DB_NAME": "MongoDB database name",
+    "GEMINI_API_KEY": "Google Gemini API key"
   }
 }
