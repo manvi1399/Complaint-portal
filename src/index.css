@@ -271,17 +271,26 @@ button.active {
 }
 
 .form-stack button {
-  margin-top: 2px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .action-button {
-  margin-top: 14px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .inline-form {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.inline-form button {
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .inline-form input {
@@ -304,7 +313,8 @@ button.active {
 }
 
 .button-row {
-  margin-bottom: 14px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .panel > .button-row:last-child,
@@ -330,12 +340,13 @@ button.active {
 }
 
 .otp-box {
-  margin-top: 14px;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .auth-link {
   display: block;
-  margin: 18px 0 0;
+  margin: 16px 0;
   line-height: 1.7;
 }
 
