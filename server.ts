@@ -2471,12 +2471,6 @@ async function startServer() {
         console.log(server.label);
       });
     }
-
-    // Also bind the citizen Express app to port 8001 so the Emergent preview-URL
-    // ingress (which routes /api/* → 8001) can reach the API endpoints during testing.
-    citizenApp.listen(8001, "0.0.0.0", () => {
-      console.log("Citizen API also exposed on http://localhost:8001 (preview ingress)");
-    });
   }
 
   console.log(`Seeded admin username: ${DEFAULT_ADMIN_USERNAME}`);
