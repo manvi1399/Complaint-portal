@@ -39,6 +39,8 @@ import {
   type ComplaintStatus,
   type PortalUserRole,
 } from "./shared/types.ts";
+import { registerCitizenAuthRoutes } from "./server/auth/citizenAuth.routes.ts";
+import type { CitizenOtpChallenge } from "./server/auth/citizenAuth.types.ts";
 
 dotenv.config();
 
@@ -68,17 +70,20 @@ function configuredEnvValue(value: string | undefined) {
 }
 
 const RESEND_API_KEY = configuredEnvValue(process.env.RESEND_API_KEY);
-const OTP_FROM_EMAIL = process.env.OTP_FROM_EMAIL ?? "Complaint Portal <onboarding@resend.dev>";
 const BREVO_API_KEY = configuredEnvValue(process.env.BREVO_API_KEY);
-const BREVO_FROM_EMAIL = configuredEnvValue(process.env.BREVO_FROM_EMAIL);
-const SMTP_HOST = configuredEnvValue(process.env.SMTP_HOST);
-const SMTP_PORT = Number.parseInt(process.env.SMTP_PORT ?? "587", 10);
-const SMTP_SECURE = process.env.SMTP_SECURE === "true";
-const SMTP_USER = configuredEnvValue(process.env.SMTP_USER);
-const SMTP_PASS = configuredEnvValue(process.env.SMTP_PASS);
-const HAS_SMTP_CONFIG = Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
+
+// Brevo SMTP (Nodemailer)
+const BREVO_HOST = configuredEnvValue(process.env.BREVO_HOST);
+const BREVO_PORT = Number.parseInt(process.env.BREVO_PORT ?? "587", 10);
+const BREVO_USER = configuredEnvValue(process.env.BREVO_USER);
+const BREVO_PASS = configuredEnvValue(process.env.BREVO_PASS);
+const BREVO_SENDER = configuredEnvValue(process.env.BREVO_SENDER);
+
+const HAS_SMTP_CONFIG = Boolean(BREVO_HOST && BREVO_USER && BREVO_PASS);
+
 const OTP_DEMO_PREVIEW =
   process.env.OTP_DEMO_PREVIEW === "true" ||
+  process.env.OTP_DEMO_PREVIEW === "1" ||
   (!HAS_SMTP_CONFIG && !RESEND_API_KEY && process.env.NODE_ENV !== "production");
 
 function otpDeliverySummary(): string {
@@ -86,7 +91,7 @@ function otpDeliverySummary(): string {
     return "email via Brevo API";
   }
   if (HAS_SMTP_CONFIG) {
-    return `email via SMTP (${SMTP_HOST}:${SMTP_PORT})`;
+    return `email via Brevo SMTP (${process.env.BREVO_HOST}:${process.env.BREVO_PORT})`;
   }
   if (RESEND_API_KEY) {
     return "email via Resend API";
@@ -863,6 +868,8 @@ function createOtpResponse(challenge: OtpChallenge, message: string) {
     expiresAt: new Date(challenge.expiresAt).toISOString(),
     channel: challenge.channel,
     destination: challenge.destination,
+    // Debug/testing: return otpPreview when OTP_DEMO_PREVIEW is on.
+    // (For Brevo production you should disable this.)
     ...(OTP_DEMO_PREVIEW ? { otpPreview: challenge.code } : {}),
     message,
   };
@@ -886,7 +893,7 @@ function parseEmailSender(value: string) {
 async function sendBrevoEmailOtp(challenge: OtpChallenge, subject: string, text: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
-  const sender = parseEmailSender(BREVO_FROM_EMAIL || OTP_FROM_EMAIL);
+  const sender = parseEmailSender(BREVO_SENDER);
 
   try {
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -945,54 +952,56 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
 
   if (HAS_SMTP_CONFIG) {
     const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_SECURE,
+      host: process.env.BREVO_HOST,
+      port: Number(process.env.BREVO_PORT),
+      secure: false,
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,
       socketTimeout: 15_000,
       auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS,
       },
     });
 
     try {
       await transporter.sendMail({
-        from: OTP_FROM_EMAIL,
+        from: process.env.BREVO_SENDER,
         to: challenge.destination,
         subject,
         text,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown SMTP error";
-      console.error("Email OTP delivery failed via SMTP.", {
-        host: SMTP_HOST,
-        port: SMTP_PORT,
-        secure: SMTP_SECURE,
-        userConfigured: Boolean(SMTP_USER),
-        from: OTP_FROM_EMAIL,
+      const errorMessage = error instanceof Error ? error.message : "Unknown Brevo SMTP error";
+      console.error("Email OTP delivery failed via Brevo SMTP.", {
+        host: process.env.BREVO_HOST,
+        port: process.env.BREVO_PORT,
+        secure: false,
+        userConfigured: Boolean(process.env.BREVO_USER),
+        from: process.env.BREVO_SENDER,
         to: challenge.destination,
         error: errorMessage,
       });
-      throw new Error(`Email OTP delivery failed via SMTP. ${errorMessage}`);
+      throw new Error(`Email OTP delivery failed via Brevo SMTP. ${errorMessage}`);
     }
 
     return;
   }
 
   if (!RESEND_API_KEY) {
-    throw new Error("Email OTP delivery is not configured. Set SMTP credentials or RESEND_API_KEY.");
+    throw new Error("Email OTP delivery is not configured. Set Brevo credentials (API or SMTP) or RESEND_API_KEY.");
   }
 
   const resend = new Resend(RESEND_API_KEY);
   
   try {
     const response = await resend.emails.send({
-      from: OTP_FROM_EMAIL,
+      from: process.env.BREVO_SENDER ?? "Complaint Portal <onboarding@resend.dev>",
       to: challenge.destination,
+
       subject,
       text,
+
     });
 
     if (response.error) {
@@ -1001,8 +1010,9 @@ async function sendEmailOtp(challenge: OtpChallenge, subject: string) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Email OTP delivery failed via Resend.", {
-      from: OTP_FROM_EMAIL,
+      from: process.env.BREVO_SENDER ?? "Complaint Portal <onboarding@resend.dev>",
       to: challenge.destination,
+
       error: errorMessage,
     });
     throw new Error(`Email OTP delivery failed. ${errorMessage}`);
@@ -1703,229 +1713,34 @@ async function registerApiRoutes(
     });
   });
 
-  app.post("/api/auth/register/request-otp", async (req, res) => {
-    const normalizedName = normalizeName(req.body?.name, "Full name");
-
-    if ("error" in normalizedName) {
-      return res.status(400).json({ error: normalizedName.error });
-    }
-
-    const normalizedPhone = normalizePhone(req.body?.phone);
-
-    if ("error" in normalizedPhone) {
-      return res.status(400).json({ error: normalizedPhone.error });
-    }
-
-    const rateLimit = checkRateLimit(buildRateLimitKey(req, "citizen-register-otp", normalizedPhone.value), OTP_RATE_LIMIT);
-    if (rateLimit) {
-      return res.status(429).json(rateLimit);
-    }
-
-    const normalizedEmail = normalizeEmail(req.body?.email);
-
-    if ("error" in normalizedEmail) {
-      return res.status(400).json({ error: normalizedEmail.error });
-    }
-
-    const normalizedPassword = normalizePassword(req.body?.password);
-
-    if ("error" in normalizedPassword) {
-      return res.status(400).json({ error: normalizedPassword.error });
-    }
-
-    if (citizenUsers.some((user) => user.phone === normalizedPhone.value)) {
-      return res.status(409).json({ error: "A citizen account already exists for this phone number." });
-    }
-
-    if (
-      normalizedEmail.value &&
-      citizenUsers.some((user) => user.email && user.email.toLowerCase() === normalizedEmail.value)
-    ) {
-      return res.status(409).json({ error: "A citizen account already exists for this email address." });
-    }
-
-    if (!normalizedEmail.value && !OTP_DEMO_PREVIEW) {
-      return res.status(400).json({
-        error: "Email address is required for OTP. SMS delivery is not configured for this deployment.",
-      });
-    }
-
-    const challenge = issueOtpChallenge({
-      purpose: "register",
-      channel: normalizedEmail.value ? "email" : "phone",
-      destination: normalizedEmail.value ?? normalizedPhone.value,
-      payload: {
-        kind: "register",
-        name: normalizedName.value,
-        phone: normalizedPhone.value,
-        email: normalizedEmail.value,
-        passwordHash: hashPassword(normalizedPassword.value),
+  registerCitizenAuthRoutes({
+    app,
+    citizenUsers,
+    saveCitizenUsers,
+    sessions: {
+      create(userId) {
+        const token = randomUUID();
+        citizenSessions.set(token, userId);
+        return token;
       },
-    });
-
-    try {
-      await deliverOtpChallenge(challenge, "Verify your Complaint Portal account");
-    } catch (error) {
-      return res.status(503).json({
-        error: error instanceof Error ? error.message : "Unable to deliver OTP.",
-      });
-    }
-
-    return res.status(201).json(
-      createOtpResponse(
-        challenge,
-        challenge.channel === "phone"
-          ? "OTP generated for phone verification."
-          : "OTP sent to your email address.",
-      ),
-    );
-  });
-
-  app.post("/api/auth/register/verify", async (req, res) => {
-    const challengeId = typeof req.body?.challengeId === "string" ? req.body.challengeId : "";
-    const otp = typeof req.body?.otp === "string" ? req.body.otp.trim() : "";
-    const consumed = consumeOtpChallenge(challengeId, otp);
-
-    if ("error" in consumed) {
-      return res.status(400).json({ error: consumed.error });
-    }
-
-    if (consumed.challenge.payload.kind !== "register") {
-      return res.status(400).json({ error: "OTP challenge is not valid for registration." });
-    }
-
-    const payload = consumed.challenge.payload;
-
-    if (citizenUsers.some((user) => user.phone === payload.phone)) {
-      return res.status(409).json({ error: "A citizen account already exists for this phone number." });
-    }
-
-    if (payload.email && citizenUsers.some((user) => user.email === payload.email)) {
-      return res.status(409).json({ error: "A citizen account already exists for this email address." });
-    }
-
-    const citizenUser: CitizenUserRecord = {
-      id: nextCitizenId(citizenUsers),
-      name: payload.name,
-      phone: payload.phone,
-      email: payload.email,
-      passwordHash: payload.passwordHash,
-      registeredAt: new Date().toISOString(),
-    };
-
-    citizenUsers.push(citizenUser);
-    await saveCitizenUsers(citizenUsers);
-
-    const token = randomUUID();
-    citizenSessions.set(token, citizenUser.id);
-
-    return res.status(201).json({
-      token,
-      user: sanitizeCitizenUser(citizenUser),
-    });
-  });
-
-  app.post("/api/auth/login/password", (req, res) => {
-    const identifier = typeof req.body?.identifier === "string" ? req.body.identifier : "";
-    const password = typeof req.body?.password === "string" ? req.body.password : "";
-    const rateLimitKey = buildRateLimitKey(req, "citizen-password", identifier);
-    const rateLimit = checkRateLimit(rateLimitKey, LOGIN_RATE_LIMIT);
-
-    if (rateLimit) {
-      return res.status(429).json(rateLimit);
-    }
-
-    const citizenUser = findCitizenByIdentifier(citizenUsers, identifier);
-
-    if (!citizenUser || !verifyPassword(password, citizenUser.passwordHash)) {
-      return res.status(401).json({ error: "Invalid citizen credentials." });
-    }
-
-    clearRateLimit(rateLimitKey);
-    const token = randomUUID();
-    citizenSessions.set(token, citizenUser.id);
-
-    return res.json({
-      token,
-      user: sanitizeCitizenUser(citizenUser),
-    });
-  });
-
-  app.post("/api/auth/login/request-otp", async (req, res) => {
-    const identifier = typeof req.body?.identifier === "string" ? req.body.identifier : "";
-    const rateLimit = checkRateLimit(buildRateLimitKey(req, "citizen-login-otp", identifier), OTP_RATE_LIMIT);
-
-    if (rateLimit) {
-      return res.status(429).json(rateLimit);
-    }
-
-    const citizenUser = findCitizenByIdentifier(citizenUsers, identifier);
-
-    if (!citizenUser) {
-      return res.status(404).json({ error: "Citizen account not found for that phone, email, or user ID." });
-    }
-
-    const useEmailChannel = Boolean(citizenUser.email);
-
-    if (!useEmailChannel && !OTP_DEMO_PREVIEW) {
-      return res.status(400).json({
-        error: "This account has no email address for OTP. Please sign in with password or register with an email address.",
-      });
-    }
-
-    const challenge = issueOtpChallenge({
-      purpose: "login",
-      channel: useEmailChannel ? "email" : "phone",
-      destination: useEmailChannel ? citizenUser.email! : citizenUser.phone,
-      payload: {
-        kind: "login",
-        citizenId: citizenUser.id,
+    },
+    otp: {
+      issue(challenge) {
+        return issueOtpChallenge(challenge) as CitizenOtpChallenge;
       },
-    });
-
-    try {
-      await deliverOtpChallenge(challenge, "Your Complaint Portal sign-in code");
-    } catch (error) {
-      return res.status(503).json({
-        error: error instanceof Error ? error.message : "Unable to deliver OTP.",
-      });
-    }
-
-    return res.status(201).json(
-      createOtpResponse(
-        challenge,
-        challenge.channel === "phone" ? "OTP generated for phone sign-in." : "OTP sent to your email address.",
-      ),
-    );
-  });
-
-  app.post("/api/auth/login/verify-otp", (req, res) => {
-    const challengeId = typeof req.body?.challengeId === "string" ? req.body.challengeId : "";
-    const otp = typeof req.body?.otp === "string" ? req.body.otp.trim() : "";
-    const consumed = consumeOtpChallenge(challengeId, otp);
-
-    if ("error" in consumed) {
-      return res.status(400).json({ error: consumed.error });
-    }
-
-    if (consumed.challenge.payload.kind !== "login") {
-      return res.status(400).json({ error: "OTP challenge is not valid for sign-in." });
-    }
-
-    const loginPayload = consumed.challenge.payload;
-    const citizenUser = citizenUsers.find((user) => user.id === loginPayload.citizenId);
-
-    if (!citizenUser) {
-      return res.status(404).json({ error: "Citizen account no longer exists." });
-    }
-
-    const token = randomUUID();
-    citizenSessions.set(token, citizenUser.id);
-
-    return res.json({
-      token,
-      user: sanitizeCitizenUser(citizenUser),
-    });
+      consume(challengeId, otp) {
+        return consumeOtpChallenge(challengeId, otp) as { challenge: CitizenOtpChallenge } | { error: string };
+      },
+      deliver(challenge, subject) {
+        return deliverOtpChallenge(challenge as OtpChallenge, subject);
+      },
+      response(challenge, message) {
+        return createOtpResponse(challenge as OtpChallenge, message);
+      },
+    },
+    loginRateLimit: LOGIN_RATE_LIMIT,
+    otpRateLimit: OTP_RATE_LIMIT,
+    otpDemoPreview: OTP_DEMO_PREVIEW,
   });
 
   app.get("/api/citizen/dashboard", requireCitizen, (req: AuthenticatedRequest, res) => {
